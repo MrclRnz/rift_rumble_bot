@@ -66,7 +66,7 @@ fn main() {
 async fn init_bot() {
     // Configure the client with your Discord bot token in the environment.
     //let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-    let token = "NzM2MTMxMzQ3OTg2MzgyOTEw.XxqVvg.ksEzV5d1nM7THdXkOd5Bn1WVSxY";
+    let token = "123";
 
     // Create a new instance of the Client, logging in as a bot. This will
     // automatically prepend your bot token with "Bot ", which is a requirement

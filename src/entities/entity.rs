@@ -1,5 +1,5 @@
-use rand::{Rng};
-use std::{collections::HashMap, ops::{RangeToInclusive, RangeInclusive}, slice::SliceIndex};
+use rand::Rng;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct GenericStaticData {
@@ -33,17 +33,18 @@ impl RiftRumbleEntityCollection {
     }
 
     pub fn randomize_champion(&self) -> &RiftRumbleEntity {
-        let mut rng = rand::thread_rng();
         self.champions
-            .get(rng.gen_range(0..=self.champions.len()))
+            .get(get_next_random_num_closed(None, 0, self.champions.len()))
             .unwrap()
     }
 
     pub fn randomize_items(&self) -> Vec<&RiftRumbleEntity> {
         let mut selected_items: HashMap<String, &RiftRumbleEntity> = HashMap::new();
         loop {
-            let mut rng = rand::thread_rng();
-            let item = self.items.get(rng.gen_range(0..=self.items.len())).unwrap();
+            let item = self
+                .items
+                .get(get_next_random_num_closed(None, 0, self.items.len()))
+                .unwrap();
             if let RiftRumbleEntity::Item(i) = item {
                 selected_items.entry(i.id.to_owned()).or_insert(item);
             }
@@ -57,7 +58,7 @@ impl RiftRumbleEntityCollection {
     pub fn randomize_runes(&self) -> HashMap<String, Vec<&RiftRumbleEntity>> {
         let mut selected_runes: HashMap<String, Vec<&RiftRumbleEntity>> = HashMap::new();
         let mut rng = rand::thread_rng();
-        let tree_index = rng.gen_range(0..=self.runes.len());
+        let tree_index = get_next_random_num_closed(None, 0, self.runes.len());
         let tree = self
             .runes
             .keys()
@@ -72,12 +73,7 @@ impl RiftRumbleEntityCollection {
             tree_vector.push(entry.1.get(rng.gen_range(0..entry.1.len())).unwrap());
         }
 
-        let mut rng = rand::thread_rng();
-        let mut second_tree_index = rng.gen_range(0..=self.runes.len());
-        while tree_index == second_tree_index {
-            let mut rng = rand::thread_rng();
-            second_tree_index = rng.gen_range(0..=self.runes.len());
-        }
+        let second_tree_index = get_next_random_num_closed(Some(tree_index), 0, self.runes.len());
         let tree = self
             .runes
             .keys()
@@ -89,23 +85,21 @@ impl RiftRumbleEntityCollection {
         selected_runes.insert(tree.to_owned(), Vec::new());
         let tree_vector = selected_runes.get_mut(tree).unwrap();
 
-        let mut rng = rand::thread_rng();
-        let first_random_row = rng.gen_range(1..=3);
-        let mut rng = rand::thread_rng();
-        let mut second_random_row = rng.gen_range(1..=3);
-        while first_random_row == second_random_row {
-            let mut rng = rand::thread_rng();
-            second_random_row = rng.gen_range(1..=3);
+        let first_random_row = get_next_random_num_closed(None, 1, 3) as u8;
+        let second_random_row =
+            get_next_random_num_closed(Some(first_random_row as usize), 1, 3) as u8;
+        for entry in self.runes.get(tree).unwrap().iter() {
+            if *entry.0 == first_random_row || *entry.0 == second_random_row {
+                tree_vector.push(entry.1.get(rng.gen_range(0..entry.1.len())).unwrap());
+            }
         }
 
         selected_runes
     }
 
-    pub fn randomize_summoners(&self) -> (&RiftRumbleEntity, &RiftRumbleEntity) {
-        let first_index = get_next_random_num(None, 0..=self.summoners.len());
-        let mut second_index = get_next_random_num(first_index, 0..=self.summoners.len());
-
-
+    pub fn randomize_summoners(&self) -> (&RiftRumbleEntity, &RiftRumbleEntity) { 
+        let first_index = get_next_random_num_closed(None, 0, self.summoners.len());
+        let second_index = get_next_random_num_closed(Some(first_index), 0, self.summoners.len());
         let first_summoner = self.summoners.get(first_index).unwrap();
         let second_summoner = self.summoners.get(second_index).unwrap();
 
@@ -113,14 +107,13 @@ impl RiftRumbleEntityCollection {
     }
 }
 
-fn get_next_random_num<T: SampleUniform>(already_used: Option<i32>, range: RangeInclusive<T>) -> i32 {
+fn get_next_random_num_closed(taken: Option<usize>, start: usize, end: usize) -> usize {
     let mut rng = rand::thread_rng();
-    let x = 1..=2;
-    let mut num = rng.gen_range(range);
-    if let Some(u) = already_used {
-        while num == u {
-            num = rng.gen_range(range);
+    let mut number = rng.gen_range(start..=end-1);
+    if let Some(t) = taken {
+        while number == t {
+            number = rng.gen_range(start..=end-1);
         }
     }
-    num
+    number
 }

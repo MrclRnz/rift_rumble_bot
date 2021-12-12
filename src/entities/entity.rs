@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{prelude::SliceRandom, thread_rng, Rng};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -14,12 +14,25 @@ pub enum RiftRumbleEntity {
     Rune(GenericStaticData),
     Summoner(GenericStaticData),
 }
+pub struct RiftRumbleEntitySet {
+    champion: &'static RiftRumbleEntity,
+    items: Vec<&'static RiftRumbleEntity>,
+    runes: HashMap<String, Vec<&'static RiftRumbleEntity>>,
+    summoners: (&'static RiftRumbleEntity, &'static RiftRumbleEntity),
+    skill_order: (&'static str, &'static str, &'static str),
+}
 
 pub struct RiftRumbleEntityCollection {
     pub champions: Vec<RiftRumbleEntity>,
     pub items: Vec<RiftRumbleEntity>,
     pub runes: HashMap<String, HashMap<u8, Vec<RiftRumbleEntity>>>,
     pub summoners: Vec<RiftRumbleEntity>,
+}
+
+fn randomize_skill_order() -> (&'static str, &'static str, &'static str) {
+    let mut skills = vec!["Q", "W", "E"];
+    skills.shuffle(&mut thread_rng());
+    (skills[0], skills[1], skills[2])
 }
 
 impl RiftRumbleEntityCollection {
@@ -32,13 +45,23 @@ impl RiftRumbleEntityCollection {
         }
     }
 
-    pub fn randomize_champion(&self) -> &RiftRumbleEntity {
+    pub fn randomize_set(&'static self) -> RiftRumbleEntitySet {
+        RiftRumbleEntitySet {
+            champion: self.randomize_champion(),
+            items: self.randomize_items(),
+            runes: self.randomize_runes(),
+            summoners: self.randomize_summoners(),
+            skill_order: randomize_skill_order(),
+        }
+    }
+
+    fn randomize_champion(&self) -> &RiftRumbleEntity {
         self.champions
             .get(get_next_random_num_closed(None, 0, self.champions.len()))
             .unwrap()
     }
 
-    pub fn randomize_items(&self) -> Vec<&RiftRumbleEntity> {
+    fn randomize_items(&self) -> Vec<&RiftRumbleEntity> {
         let mut selected_items: HashMap<String, &RiftRumbleEntity> = HashMap::new();
         loop {
             let item = self
@@ -55,7 +78,7 @@ impl RiftRumbleEntityCollection {
         selected_items.into_values().collect()
     }
 
-    pub fn randomize_runes(&self) -> HashMap<String, Vec<&RiftRumbleEntity>> {
+    fn randomize_runes(&self) -> HashMap<String, Vec<&RiftRumbleEntity>> {
         let mut selected_runes: HashMap<String, Vec<&RiftRumbleEntity>> = HashMap::new();
         let mut rng = rand::thread_rng();
         let tree_index = get_next_random_num_closed(None, 0, self.runes.len());
@@ -97,7 +120,7 @@ impl RiftRumbleEntityCollection {
         selected_runes
     }
 
-    pub fn randomize_summoners(&self) -> (&RiftRumbleEntity, &RiftRumbleEntity) { 
+    fn randomize_summoners(&self) -> (&RiftRumbleEntity, &RiftRumbleEntity) {
         let first_index = get_next_random_num_closed(None, 0, self.summoners.len());
         let second_index = get_next_random_num_closed(Some(first_index), 0, self.summoners.len());
         let first_summoner = self.summoners.get(first_index).unwrap();
@@ -109,10 +132,10 @@ impl RiftRumbleEntityCollection {
 
 fn get_next_random_num_closed(taken: Option<usize>, start: usize, end: usize) -> usize {
     let mut rng = rand::thread_rng();
-    let mut number = rng.gen_range(start..=end-1);
+    let mut number = rng.gen_range(start..=end - 1);
     if let Some(t) = taken {
         while number == t {
-            number = rng.gen_range(start..=end-1);
+            number = rng.gen_range(start..=end - 1);
         }
     }
     number

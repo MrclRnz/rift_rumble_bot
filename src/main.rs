@@ -9,16 +9,6 @@ fn main() {
         );
     }
 
-    let champion = entity_collection.randomize_champion();
-    let items = entity_collection.randomize_items();
-    let runes = entity_collection.randomize_runes();
-    let summoners = entity_collection.randomize_summoners();
-
-    println!("Champion: {:?}", champion);
-    println!("Items: {:?}", items);
-    println!("Runes: {:?}", runes);
-    println!("Summoners: {:?}", summoners);
-
-    bot::init_bot();
+    bot::init_bot(entity_collection);
 }
 

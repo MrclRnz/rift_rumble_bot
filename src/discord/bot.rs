@@ -1,4 +1,5 @@
-use std::{collections::HashMap, env, sync::Mutex};
+use crate::entities::entity::CustomHashMap;
+use std::{collections::HashMap, env, sync::Arc};
 
 use serenity::{
     async_trait,
@@ -7,12 +8,8 @@ use serenity::{
 };
 
 use crate::entities::entity::RiftRumbleEntityCollection;
-use crate::entities::entity::RiftRumbleEntitySet;
 
-struct Handler {
-    rift_rumble_participants: Mutex<HashMap<User, RiftRumbleEntitySet>>,
-    entity_collection: RiftRumbleEntityCollection
-}
+struct Handler;
 
 impl Handler {
     async fn send_public_message(channel: &ChannelId, ctx: &Context, message: &str) {
@@ -32,17 +29,35 @@ impl Handler {
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn message(&'static self, ctx: Context, msg: Message) {
+    async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!open" {
-            if let Ok(map) = self.rift_rumble_participants.lock().as_mut() {
-                map.clear();
+            let user_map = {
+                let data_read = ctx.data.read().await;
+                data_read.get::<CustomHashMap>().expect("Expected CustomHashMap in TypeMap.").clone()
+            };
+            {
+                let mut map = user_map.write().await;
+                map.0.clear();
             }
             Handler::send_public_message(&msg.channel_id, &ctx, "Rift Rumble initialized!");
         }
         if msg.content == "!participate" {
-            if let Ok(map) = self.rift_rumble_participants.lock().as_mut() {
-                map.entry(msg.author).or_insert(self.entity_collection.randomize_set());
+
+            let collection = {
+                let data_read = ctx.data.read().await;
+                data_read.get::<RiftRumbleEntityCollection>().expect("Expected RiftRumbleEntityCollection in TypeMap.").clone()
+            };
+
+            let user_map = {
+                let data_read = ctx.data.read().await;
+                data_read.get::<CustomHashMap>().expect("Expected CustomHashMap in TypeMap.").clone()
+            };
+        
+            {
+                let mut map_lock = user_map.write().await;
+                map_lock.0.insert(msg.author.id, collection.randomize_set());
             }
+        
             Handler::send_private_message(
                 &msg.author,
                 &ctx,
@@ -50,18 +65,13 @@ impl EventHandler for Handler {
             );
         }
         if msg.content == "!leave" {
-            if let Ok(map) = self.rift_rumble_participants.lock().as_mut() {
-                map.remove(&msg.author);
-            }
             Handler::send_private_message(
                 &msg.author,
                 &ctx,
                 "You have been removed from the Rift Rumble!",
             );
         }
-        if msg.content == "!start" {
-
-        }
+        if msg.content == "!start" {}
     }
 
     async fn ready(&self, _: Context, ready: Ready) {
@@ -69,7 +79,7 @@ impl EventHandler for Handler {
     }
 }
 
-//#[tokio::main]
+#[tokio::main]
 pub async fn init_bot(entity_collection: RiftRumbleEntityCollection) {
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
@@ -78,13 +88,15 @@ pub async fn init_bot(entity_collection: RiftRumbleEntityCollection) {
     // automatically prepend your bot token with "Bot ", which is a requirement
     // by Discord for bot users.
     let mut client = Client::builder(&token)
-        .event_handler(Handler {
-            rift_rumble_participants: Mutex::new(HashMap::new()),
-            entity_collection: entity_collection
-        })
+        .event_handler(Handler)
         .await
         .expect("Err creating client");
 
+    {
+        let mut data = client.data.write().await;
+        data.insert::<RiftRumbleEntityCollection>(Arc::new(entity_collection));
+        data.insert::<CustomHashMap>(Arc::new(RwLock::new(CustomHashMap(HashMap::new()))));
+    }
     // Finally, start a single shard, and start listening to events.
     //
     // Shards will automatically attempt to reconnect, and will perform

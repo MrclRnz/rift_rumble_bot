@@ -1,5 +1,8 @@
 use rand::{prelude::SliceRandom, thread_rng, Rng};
-use std::collections::HashMap;
+use serenity::{model::prelude::UserId};
+use serenity::prelude::TypeMapKey;
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use tokio::sync::RwLock;
 
 #[derive(Debug)]
 pub struct GenericStaticData {
@@ -14,6 +17,7 @@ pub enum RiftRumbleEntity {
     Rune(GenericStaticData),
     Summoner(GenericStaticData),
 }
+#[derive(Debug)]
 pub struct RiftRumbleEntitySet {
     champion: &'static RiftRumbleEntity,
     items: Vec<&'static RiftRumbleEntity>,
@@ -28,8 +32,16 @@ pub struct RiftRumbleEntityCollection {
     pub runes: HashMap<String, HashMap<u8, Vec<RiftRumbleEntity>>>,
     pub summoners: Vec<RiftRumbleEntity>,
 }
+impl TypeMapKey for RiftRumbleEntityCollection {
+    type Value = Arc<RiftRumbleEntityCollection>;
+}
 
-fn randomize_skill_order() -> (&'static str, &'static str, &'static str) {
+pub struct CustomHashMap(pub HashMap<UserId, RiftRumbleEntitySet>);
+impl TypeMapKey for CustomHashMap {
+    type Value = Arc<RwLock<CustomHashMap>>;
+}
+
+fn randomize_skill_order<'a>() -> (&'a str, &'a str, &'a str) {
     let mut skills = vec!["Q", "W", "E"];
     skills.shuffle(&mut thread_rng());
     (skills[0], skills[1], skills[2])

@@ -39,7 +39,7 @@ impl EventHandler for Handler {
                 let mut map = user_map.write().await;
                 map.0.clear();
             }
-            Handler::send_public_message(&msg.channel_id, &ctx, "Rift Rumble initialized!");
+            Handler::send_public_message(&msg.channel_id, &ctx, "Rift Rumble initialized!").await;
         }
         if msg.content == "!participate" {
 
@@ -56,20 +56,26 @@ impl EventHandler for Handler {
             {
                 let mut map_lock = user_map.write().await;
                 map_lock.0.insert(msg.author.id, collection.randomize_set());
+                println!("{:?}", map_lock.0);
+                Handler::send_private_message(
+                    &msg.author,
+                    &ctx,
+                    format!("{:?}", map_lock.0).as_str(),
+                ).await;
             }
         
             Handler::send_private_message(
                 &msg.author,
                 &ctx,
                 "You have been added to the Rift Rumble!",
-            );
+            ).await;
         }
         if msg.content == "!leave" {
             Handler::send_private_message(
                 &msg.author,
                 &ctx,
                 "You have been removed from the Rift Rumble!",
-            );
+            ).await;
         }
         if msg.content == "!start" {}
     }

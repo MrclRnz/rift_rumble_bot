@@ -9,7 +9,7 @@ fn main() {
             e
         );
     }
-    println!("Start bot");
+    
     bot::init_bot(entity_collection);
 }
 

@@ -19,11 +19,11 @@ pub enum RiftRumbleEntity {
 }
 #[derive(Debug)]
 pub struct RiftRumbleEntitySet{
-    champion: Arc<RiftRumbleEntity>,
-    items: Vec<Arc<RiftRumbleEntity>>,
-    runes: HashMap<String, Vec<Arc<RiftRumbleEntity>>>,
-    summoners: (Arc<RiftRumbleEntity>, Arc<RiftRumbleEntity>),
-    skill_order: (String, String, String),
+    pub champion: Arc<RiftRumbleEntity>,
+    pub items: Vec<Arc<RiftRumbleEntity>>,
+    pub runes: HashMap<String, Vec<Arc<RiftRumbleEntity>>>,
+    pub summoners: (Arc<RiftRumbleEntity>, Arc<RiftRumbleEntity>),
+    pub skill_order: (String, String, String),
 }
 
 pub struct RiftRumbleEntityCollection {

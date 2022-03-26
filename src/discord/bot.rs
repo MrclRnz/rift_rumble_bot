@@ -47,7 +47,7 @@ impl Handler {
 
                 let mut message_string = "".to_owned();
                 for item in &value.items {
-                    if let RiftRumbleEntity::Item(i) = item.as_ref() {
+                    if let RiftRumbleEntity::Item(i, _m) = item.as_ref() {
                         message_string.push_str(&i.name);
                         message_string.push_str("\r\n");
                     }

@@ -8,7 +8,7 @@ use std::fs;
 use std::io;
 use std::sync::Arc;
 
-const DATA_DRAGON_ROOT: &str = "./resources/11.23.1/data/en_US";
+const DATA_DRAGON_ROOT: &str = "./resources/12.5.1/data/en_US";
 const SUMMONERS_RIFT_ID: &str = "11";
 const CLASSIC_MODE: &str = "CLASSIC";
 
@@ -103,17 +103,23 @@ fn load_items_from_file(items: &mut Vec<Arc<RiftRumbleEntity>>, file_path: &str)
         let item = json.get(id)?;
         if item_is_eligible(item)? {
             let name = item.get("name")?.as_str()?.to_owned();
-
-            items.push(Arc::new(RiftRumbleEntity::Item(GenericStaticData {
-                id: id.to_owned(),
-                name,
-            })));
+            let is_mythic =item.get("description")?.as_str()?.contains("rarityMythic");
+            items.push(Arc::new(RiftRumbleEntity::Item(
+                GenericStaticData {
+                    id: id.to_owned(),
+                    name,
+                },
+                is_mythic,
+            )));
         }
     }
     Some(())
 }
 
-fn load_summoners_from_file(summoners: &mut Vec<Arc<RiftRumbleEntity>>, file_path: &str) -> Option<()> {
+fn load_summoners_from_file(
+    summoners: &mut Vec<Arc<RiftRumbleEntity>>,
+    file_path: &str,
+) -> Option<()> {
     let file = fs::File::open(file_path).ok()?;
     let json: Value = serde_json::from_reader(file).ok()?;
     let json = json.get("data")?.as_object()?;

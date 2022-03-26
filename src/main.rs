@@ -12,4 +12,3 @@ fn main() {
     
     bot::init_bot(entity_collection);
 }
-

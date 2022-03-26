@@ -1,5 +1,5 @@
 use rand::{prelude::SliceRandom, thread_rng, Rng};
-use serenity::{model::prelude::UserId};
+use serenity::model::prelude::UserId;
 use serenity::prelude::TypeMapKey;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use tokio::sync::RwLock;
@@ -13,12 +13,12 @@ pub struct GenericStaticData {
 #[derive(Debug)]
 pub enum RiftRumbleEntity {
     Champion(GenericStaticData),
-    Item(GenericStaticData),
+    Item(GenericStaticData, bool),
     Rune(GenericStaticData),
     Summoner(GenericStaticData),
 }
 #[derive(Debug)]
-pub struct RiftRumbleEntitySet{
+pub struct RiftRumbleEntitySet {
     pub champion: Arc<RiftRumbleEntity>,
     pub items: Vec<Arc<RiftRumbleEntity>>,
     pub runes: HashMap<String, Vec<Arc<RiftRumbleEntity>>>,
@@ -45,7 +45,11 @@ impl TypeMapKey for CustomHashMap {
 fn randomize_skill_order() -> (String, String, String) {
     let mut skills = vec!["Q", "W", "E"];
     skills.shuffle(&mut thread_rng());
-    (skills[0].to_owned(), skills[1].to_owned(), skills[2].to_owned())
+    (
+        skills[0].to_owned(),
+        skills[1].to_owned(),
+        skills[2].to_owned(),
+    )
 }
 
 impl RiftRumbleEntityCollection {
@@ -77,14 +81,27 @@ impl RiftRumbleEntityCollection {
 
     fn randomize_items(&self) -> Vec<Arc<RiftRumbleEntity>> {
         let mut selected_items: HashMap<String, Arc<RiftRumbleEntity>> = HashMap::new();
+
+        for item in self.items.iter() {
+            if let RiftRumbleEntity::Item(i, is_mythic) = item.as_ref() {
+                if *is_mythic {
+                    selected_items
+                        .entry(i.id.to_owned())
+                        .or_insert(item.clone());
+                    break;
+                }
+            }
+        }
         loop {
             let item = self
                 .items
                 .get(get_next_random_num_closed(None, 0, self.items.len()))
                 .unwrap()
                 .clone();
-            if let RiftRumbleEntity::Item(i) = item.as_ref() {
-                selected_items.entry(i.id.to_owned()).or_insert(item);
+            if let RiftRumbleEntity::Item(i, is_mythic) = item.as_ref() {
+                if !*is_mythic {
+                    selected_items.entry(i.id.to_owned()).or_insert(item);
+                }
             }
             if selected_items.len() == 5 {
                 break;
@@ -108,7 +125,13 @@ impl RiftRumbleEntityCollection {
         selected_runes.insert(tree.to_owned(), Vec::new());
         let tree_vector = selected_runes.get_mut(tree).unwrap();
         for entry in self.runes.get(tree).unwrap().iter() {
-            tree_vector.push(entry.1.get(rng.gen_range(0..entry.1.len())).unwrap().clone());
+            tree_vector.push(
+                entry
+                    .1
+                    .get(rng.gen_range(0..entry.1.len()))
+                    .unwrap()
+                    .clone(),
+            );
         }
 
         let second_tree_index = get_next_random_num_closed(Some(tree_index), 0, self.runes.len());
@@ -128,7 +151,13 @@ impl RiftRumbleEntityCollection {
             get_next_random_num_closed(Some(first_random_row as usize), 1, 3) as u8;
         for entry in self.runes.get(tree).unwrap().iter() {
             if *entry.0 == first_random_row || *entry.0 == second_random_row {
-                tree_vector.push(entry.1.get(rng.gen_range(0..entry.1.len())).unwrap().clone());
+                tree_vector.push(
+                    entry
+                        .1
+                        .get(rng.gen_range(0..entry.1.len()))
+                        .unwrap()
+                        .clone(),
+                );
             }
         }
 
